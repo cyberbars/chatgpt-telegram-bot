@@ -1,5 +1,8 @@
+import http
 import logging
 import os
+import socketserver
+import threading
 
 from dotenv import load_dotenv
 
@@ -54,7 +57,8 @@ def main():
         'show_plugins_used': os.environ.get('SHOW_PLUGINS_USED', 'false').lower() == 'true',
         'whisper_prompt': os.environ.get('WHISPER_PROMPT', ''),
         'vision_model': os.environ.get('VISION_MODEL', 'gpt-4-vision-preview'),
-        'enable_vision_follow_up_questions': os.environ.get('ENABLE_VISION_FOLLOW_UP_QUESTIONS', 'true').lower() == 'true',
+        'enable_vision_follow_up_questions': os.environ.get('ENABLE_VISION_FOLLOW_UP_QUESTIONS',
+                                                            'true').lower() == 'true',
         'vision_prompt': os.environ.get('VISION_PROMPT', 'What is in this image'),
         'vision_detail': os.environ.get('VISION_DETAIL', 'auto'),
         'vision_max_tokens': int(os.environ.get('VISION_MAX_TOKENS', '300')),
@@ -64,7 +68,7 @@ def main():
 
     if openai_config['enable_functions'] and not functions_available:
         logging.error(f'ENABLE_FUNCTIONS is set to true, but the model {model} does not support it. '
-                        f'Please set ENABLE_FUNCTIONS to false or use a model that supports it.')
+                      f'Please set ENABLE_FUNCTIONS to false or use a model that supports it.')
         exit(1)
     if os.environ.get('MONTHLY_USER_BUDGETS') is not None:
         logging.warning('The environment variable MONTHLY_USER_BUDGETS is deprecated. '
@@ -106,17 +110,16 @@ def main():
         'plugins': os.environ.get('PLUGINS', '').split(',')
     }
 
-    #Health checker for DO
+    # Health checker for DO
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
-            self.send_response(HTTPStatus.OK)
+            self.send_response(http.HTTPStatus.OK)
             self.end_headers()
-            msg = 'Hello! you requested %s' % (self.path)
+            msg = 'Hello! you requested %s' % self.path
             self.wfile.write(msg.encode())
 
-
     port = int(os.getenv('PORT', 8080))
-    print('Listening on port %s' % (port))
+    print('Listening on port %s' % port)
     httpd = socketserver.TCPServer(('', port), Handler)
     threading.Thread(target=httpd.serve_forever).start()
 

@@ -106,6 +106,20 @@ def main():
         'plugins': os.environ.get('PLUGINS', '').split(',')
     }
 
+    #Health checker for DO
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(HTTPStatus.OK)
+            self.end_headers()
+            msg = 'Hello! you requested %s' % (self.path)
+            self.wfile.write(msg.encode())
+
+
+    port = int(os.getenv('PORT', 8080))
+    print('Listening on port %s' % (port))
+    httpd = socketserver.TCPServer(('', port), Handler)
+    threading.Thread(target=httpd.serve_forever).start()
+
     # Setup and run ChatGPT and Telegram bot
     plugin_manager = PluginManager(config=plugin_config)
     openai_helper = OpenAIHelper(config=openai_config, plugin_manager=plugin_manager)
